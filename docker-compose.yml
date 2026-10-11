@@ -1,0 +1,62 @@
+x-common-env: &x-common-env
+  APP_NAME: "Remote Log Service"
+  APP_VERSION: "1.0.0"
+  DEBUG: true
+  LEADER_SWAGGER_HOST_URL: http://localhost:8000/docs
+  FOLLOWER_1_SWAGGER_HOST_URL: http://localhost:8001/docs
+  FOLLOWER_2_SWAGGER_HOST_URL: http://localhost:8002/docs
+
+services:
+  leader:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_MODULE: "app.leader_node.main:app"
+    container_name: rlog-leader
+    environment:
+      NODE_ID: leader
+      FOLLOWER_1_URL: http://follower-1:8000
+      FOLLOWER_2_URL: http://follower-2:8000
+      <<: *x-common-env
+    ports:
+      - "8000:8000"
+    networks:
+      - rlog-network
+
+  follower-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_MODULE: "follower_node.main:app"
+    image: rlog-follower
+    container_name: rlog-follower-1
+    ports:
+      - "8001:8000"
+    environment:
+      NODE_ID: follower-1
+      <<: *x-common-env
+    networks:
+      - rlog-network
+
+  follower-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_MODULE: "follower_node.main:app"
+    image: rlog-follower
+    container_name: rlog-follower-2
+    depends_on: [ follower-1 ]
+    ports:
+      - "8002:8000"
+    environment:
+      NODE_ID: follower-2
+      <<: *x-common-env
+    networks:
+      - rlog-network
+
+networks:
+  rlog-network:
+    driver: bridge
